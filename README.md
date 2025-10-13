@@ -415,8 +415,10 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Acknowledgments
 
-- Inspired by Microsoft's [ZoomIt](https://learn.microsoft.com/en-us/sysinternals/downloads/zoomit)
+- Inspired by [ZoomIt](https://learn.microsoft.com/en-us/sysinternals/downloads/zoomit) by [Mark Russinovich](https://github.com/markrussinovich)
+- Built for [Hyprland](https://hyprland.org/) by [vaxry](https://github.com/vaxerski)
 - Similar to [Gromit-MPX](https://github.com/bk138/gromit-mpx)
+- Development approach inspired by [DHH](https://dhh.dk/)'s [Omarchy](https://omarchy.org)
 - Uses [Cairo](https://www.cairographics.org/) for rendering
 - Built with [Rust](https://www.rust-lang.org/) and [smithay-client-toolkit](https://github.com/Smithay/client-toolkit)
 
