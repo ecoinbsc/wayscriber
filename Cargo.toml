@@ -1,0 +1,37 @@
+[package]
+name = "hyprmarker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Wayland
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
+smithay-client-toolkit = { version = "0.20", default-features = false, features = ["calloop", "xkbcommon"] }
+calloop = "0.14"
+
+# Cairo for drawing
+cairo-rs = { version = "0.21", features = ["png"] }
+cairo-sys-rs = "0.21"
+
+# Pango for advanced text rendering and font support
+pango = "0.21"
+pangocairo = "0.21"
+
+# Utils
+nix = "0.30"
+memmap2 = "0.9"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+toml = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+dirs = "6.0"
+
+# Daemon mode
+signal-hook = "0.3"
+ksni = "0.3"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "time"] }

@@ -1,0 +1,24 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Cargo
+# Keep Cargo.lock for binaries for reproducible builds (uncomment to ignore for libs)
+# Cargo.lock
+
+# Editors/OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+
+# ZoomIt reference files (not part of our implementation)
+/ZoomIt/
+
+# Test scripts
+test_run.sh
+run.sh
+
+!/packaging/hyprmarker.service
+packaging/

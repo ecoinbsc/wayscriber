@@ -1,0 +1,280 @@
+# Configuration Guide
+
+## Overview
+
+hyprmarker supports customization through a TOML configuration file located at:
+```
+~/.config/hyprmarker/config.toml
+```
+
+All settings are optional. If the configuration file doesn't exist or settings are missing, sensible defaults will be used.
+
+## Configuration File Location
+
+The configuration file should be placed at:
+- Linux: `~/.config/hyprmarker/config.toml`
+- The directory will be created automatically when you first create the config file
+
+## Example Configuration
+
+See `config.example.toml` in the repository root for a complete example with documentation.
+
+## Configuration Sections
+
+### `[drawing]` - Drawing Defaults
+
+Controls the default appearance of annotations.
+
+```toml
+[drawing]
+# Default pen color
+# Options: "red", "green", "blue", "yellow", "orange", "pink", "white", "black"
+# Or RGB array: [255, 0, 0]
+default_color = "red"
+
+# Default pen thickness in pixels (1.0 - 20.0)
+default_thickness = 3.0
+
+# Default font size for text mode (8.0 - 72.0)
+default_font_size = 32.0
+```
+
+**Color Options:**
+- **Named colors**: `"red"`, `"green"`, `"blue"`, `"yellow"`, `"orange"`, `"pink"`, `"white"`, `"black"`
+- **RGB arrays**: `[255, 0, 0]` for red, `[0, 255, 0]` for green, etc.
+
+**Defaults:**
+- Color: Red
+- Thickness: 3.0px
+- Font size: 32.0px
+
+### `[arrow]` - Arrow Geometry
+
+Controls the appearance of arrow annotations.
+
+```toml
+[arrow]
+# Arrowhead length in pixels
+length = 20.0
+
+# Arrowhead angle in degrees (15-60)
+# 30 degrees gives a nice balanced arrow
+angle_degrees = 30.0
+```
+
+**Defaults:**
+- Length: 20.0px
+- Angle: 30.0°
+
+### `[performance]` - Performance Tuning
+
+Controls rendering performance and smoothness.
+
+```toml
+[performance]
+# Number of buffers for rendering (2, 3, or 4)
+# 2 = double buffering (low memory)
+# 3 = triple buffering (recommended, smooth)
+# 4 = quad buffering (ultra-smooth on high refresh displays)
+buffer_count = 3
+
+# Enable vsync frame synchronization
+# Prevents tearing and limits rendering to display refresh rate
+enable_vsync = true
+```
+
+**Buffer Count:**
+- **2**: Double buffering - minimal memory usage, may flicker on fast drawing
+- **3**: Triple buffering - recommended default, smooth drawing
+- **4**: Quad buffering - for high-refresh displays (144Hz+), ultra-smooth
+
+**VSync:**
+- **true** (default): Synchronizes with display refresh rate, no tearing
+- **false**: Uncapped rendering, may cause tearing but lower latency
+
+**Defaults:**
+- Buffer count: 3 (triple buffering)
+- VSync: true
+
+### `[ui]` - User Interface
+
+Controls visual indicators, overlays, and UI styling.
+
+```toml
+[ui]
+# Show status bar with current color/thickness/tool
+show_status_bar = true
+
+# Status bar position
+# Options: "top-left", "top-right", "bottom-left", "bottom-right"
+status_bar_position = "bottom-left"
+
+# Status bar styling
+[ui.status_bar_style]
+font_size = 14.0
+padding = 10.0
+bg_color = [0.0, 0.0, 0.0, 0.7]      # Semi-transparent black [R, G, B, A]
+text_color = [1.0, 1.0, 1.0, 1.0]    # White
+dot_radius = 4.0
+
+# Help overlay styling
+[ui.help_overlay_style]
+font_size = 16.0
+line_height = 22.0
+padding = 20.0
+bg_color = [0.0, 0.0, 0.0, 0.85]     # Darker background
+border_color = [0.3, 0.6, 1.0, 0.9]  # Light blue
+border_width = 2.0
+text_color = [1.0, 1.0, 1.0, 1.0]    # White
+```
+
+**Status Bar:**
+- Shows current color, pen thickness, and active tool
+- Press `F10` to toggle help overlay
+- Fully customizable styling (fonts, colors, sizes)
+
+**Position Options:**
+- `"top-left"`: Upper left corner
+- `"top-right"`: Upper right corner
+- `"bottom-left"`: Lower left corner (default)
+- `"bottom-right"`: Lower right corner
+
+**UI Styling:**
+- **Font sizes**: Customize text size for status bar and help overlay
+- **Colors**: All RGBA values (0.0-1.0 range) with transparency control
+- **Layout**: Padding, line height, dot size, border width all configurable
+
+**Defaults:**
+- Show status bar: true
+- Position: bottom-left
+- Status bar font: 14px
+- Help overlay font: 16px
+- Semi-transparent dark backgrounds
+- Light blue help overlay border
+
+## Creating Your Configuration
+
+1. Create the directory:
+   ```bash
+   mkdir -p ~/.config/hyprmarker
+   ```
+
+2. Copy the example config:
+   ```bash
+   cp config.example.toml ~/.config/hyprmarker/config.toml
+   ```
+
+3. Edit to your preferences:
+   ```bash
+   nano ~/.config/hyprmarker/config.toml
+   ```
+
+## Configuration Priority
+
+Settings are loaded in this order:
+1. Built-in defaults (hardcoded)
+2. Configuration file values (override defaults)
+3. Runtime changes via keybindings (temporary, not saved)
+
+**Note:** Changes to the config file require restarting hyprmarker daemon to take effect.
+
+To reload config changes:
+```bash
+# Use the reload script
+./reload-daemon.sh
+
+# Or manually
+pkill hyprmarker
+hyprmarker --daemon &
+```
+
+## Troubleshooting
+
+### Config File Not Loading
+
+If your config file isn't being read:
+
+1. Check the file path:
+   ```bash
+   ls -la ~/.config/hyprmarker/config.toml
+   ```
+
+2. Verify TOML syntax:
+   ```bash
+   # Install a TOML validator if needed
+   toml-validator ~/.config/hyprmarker/config.toml
+   ```
+
+3. Check logs for errors:
+   ```bash
+   RUST_LOG=info hyprmarker --active
+   ```
+
+### Invalid Values
+
+If you specify invalid values:
+- **Out of range**: Values will be clamped to valid ranges
+- **Invalid color name**: Falls back to default (red)
+- **Malformed RGB**: Falls back to default color
+- **Parse errors**: Entire config file ignored, defaults used
+
+Check the application logs for warnings about config issues.
+
+## Advanced Usage
+
+### Per-Project Configs
+
+While hyprmarker uses a single global config, you can:
+1. Create different config files
+2. Symlink the active one to `~/.config/hyprmarker/config.toml`
+
+Example:
+```bash
+# Create project-specific configs
+cp config.example.toml ~/configs/hyprmarker-presentation.toml
+cp config.example.toml ~/configs/hyprmarker-recording.toml
+
+# Switch configs
+ln -sf ~/configs/hyprmarker-presentation.toml ~/.config/hyprmarker/config.toml
+```
+
+### Configuration Examples
+
+**High-contrast presentation mode:**
+```toml
+[drawing]
+default_color = "yellow"
+default_thickness = 5.0
+default_font_size = 48.0
+
+[ui]
+status_bar_position = "top-right"
+```
+
+**Screen recording mode (subtle annotations):**
+```toml
+[drawing]
+default_color = "blue"
+default_thickness = 2.0
+default_font_size = 24.0
+
+[performance]
+buffer_count = 4
+enable_vsync = true
+
+[ui]
+show_status_bar = false
+```
+
+**High-refresh display optimization:**
+```toml
+[performance]
+buffer_count = 4
+enable_vsync = true
+```
+
+## See Also
+
+- `SETUP.md` - Installation and system requirements
+- `config.example.toml` - Annotated example configuration
+- `README.md` - Main documentation with usage guide
