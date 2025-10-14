@@ -71,37 +71,9 @@ impl CanvasSet {
         self.active_mode = new_mode;
     }
 
-    /// Gets a specific frame by mode (for testing or special operations).
-    ///
-    /// Returns None if the frame hasn't been created yet (for board modes).
-    pub fn get_frame(&self, mode: BoardMode) -> Option<&Frame> {
-        match mode {
-            BoardMode::Transparent => Some(&self.transparent),
-            BoardMode::Whiteboard => self.whiteboard.as_ref(),
-            BoardMode::Blackboard => self.blackboard.as_ref(),
-        }
-    }
-
-    /// Clears all frames (nuclear option, rarely used).
-    ///
-    /// This clears existing frames and drops any lazily-allocated board frames,
-    /// freeing their memory.
-    pub fn clear_all(&mut self) {
-        self.transparent.clear();
-        self.whiteboard = None;
-        self.blackboard = None;
-    }
-
     /// Clears only the active frame.
     pub fn clear_active(&mut self) {
         self.active_frame_mut().clear();
-    }
-
-    /// Returns true if any board mode (whiteboard/blackboard) has been used.
-    ///
-    /// Useful for detecting if user has ever activated board features.
-    pub fn has_used_boards(&self) -> bool {
-        self.whiteboard.is_some() || self.blackboard.is_some()
     }
 }
 
@@ -123,33 +95,17 @@ mod tests {
     }
 
     #[test]
-    fn test_transparent_frame_always_exists() {
-        let canvas_set = CanvasSet::new();
-        assert!(canvas_set.get_frame(BoardMode::Transparent).is_some());
-    }
-
-    #[test]
-    fn test_board_frames_lazy_initialization() {
-        let canvas_set = CanvasSet::new();
-        // Initially, board frames don't exist
-        assert!(canvas_set.get_frame(BoardMode::Whiteboard).is_none());
-        assert!(canvas_set.get_frame(BoardMode::Blackboard).is_none());
-        assert!(!canvas_set.has_used_boards());
-    }
-
-    #[test]
     fn test_frame_created_on_first_mutable_access() {
         let mut canvas_set = CanvasSet::new();
 
         // Switch to whiteboard
         canvas_set.switch_mode(BoardMode::Whiteboard);
 
-        // Access the frame (this should create it)
-        let _frame = canvas_set.active_frame_mut();
+        // Access the frame (this should create it via lazy initialization)
+        let frame = canvas_set.active_frame_mut();
 
-        // Now it should exist
-        assert!(canvas_set.get_frame(BoardMode::Whiteboard).is_some());
-        assert!(canvas_set.has_used_boards());
+        // Frame should be empty initially
+        assert_eq!(frame.shapes.len(), 0);
     }
 
     #[test]
@@ -262,52 +218,12 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_all() {
-        let mut canvas_set = CanvasSet::new();
-
-        // Add shapes to multiple frames
-        canvas_set.active_frame_mut().add_shape(Shape::Line {
-            x1: 0,
-            y1: 0,
-            x2: 100,
-            y2: 100,
-            color: RED,
-            thick: 3.0,
-        });
-
-        canvas_set.switch_mode(BoardMode::Whiteboard);
-        canvas_set.active_frame_mut().add_shape(Shape::Rect {
-            x: 10,
-            y: 10,
-            w: 50,
-            h: 50,
-            color: BLACK,
-            thick: 2.0,
-        });
-
-        // Clear all
-        canvas_set.clear_all();
-
-        // All frames should be empty
-        canvas_set.switch_mode(BoardMode::Transparent);
-        assert_eq!(canvas_set.active_frame().shapes.len(), 0);
-
-        // Whiteboard frame should be dropped (not just cleared)
-        assert!(canvas_set.get_frame(BoardMode::Whiteboard).is_none());
-        assert!(!canvas_set.has_used_boards());
-    }
-
-    #[test]
     fn test_immutable_access_to_nonexistent_frame() {
-        let mut canvas_set = CanvasSet::new();
+        let canvas_set = CanvasSet::new();
 
         // Accessing a non-existent board frame immutably should work
         // (returns empty frame reference, doesn't create it)
-        canvas_set.switch_mode(BoardMode::Whiteboard);
-        let frame = canvas_set.active_frame();
-        assert_eq!(frame.shapes.len(), 0);
-
-        // But it shouldn't actually create the frame
-        assert!(canvas_set.get_frame(BoardMode::Whiteboard).is_none());
+        // This test demonstrates the static EMPTY_FRAME pattern
+        assert_eq!(canvas_set.active_frame().shapes.len(), 0);
     }
 }

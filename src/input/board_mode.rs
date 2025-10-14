@@ -89,22 +89,6 @@ impl BoardMode {
             _ => None,
         }
     }
-
-    /// Returns the display name for status bar, if any.
-    ///
-    /// Transparent mode returns None (no badge displayed).
-    pub fn display_name(&self) -> Option<&'static str> {
-        match self {
-            Self::Transparent => None,
-            Self::Whiteboard => Some("WHITEBOARD"),
-            Self::Blackboard => Some("BLACKBOARD"),
-        }
-    }
-
-    /// Returns true if this is a board mode (not transparent).
-    pub fn is_board_mode(&self) -> bool {
-        !matches!(self, Self::Transparent)
-    }
 }
 
 #[cfg(test)]
@@ -153,20 +137,6 @@ mod tests {
         assert_eq!(black_pen.r, 1.0);
         assert_eq!(black_pen.g, 1.0);
         assert_eq!(black_pen.b, 1.0);
-    }
-
-    #[test]
-    fn test_display_name() {
-        assert_eq!(BoardMode::Transparent.display_name(), None);
-        assert_eq!(BoardMode::Whiteboard.display_name(), Some("WHITEBOARD"));
-        assert_eq!(BoardMode::Blackboard.display_name(), Some("BLACKBOARD"));
-    }
-
-    #[test]
-    fn test_is_board_mode() {
-        assert!(!BoardMode::Transparent.is_board_mode());
-        assert!(BoardMode::Whiteboard.is_board_mode());
-        assert!(BoardMode::Blackboard.is_board_mode());
     }
 
     #[test]
