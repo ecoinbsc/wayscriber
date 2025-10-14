@@ -62,8 +62,10 @@ impl Daemon {
                         toggle_flag.store(true, Ordering::Release);
                     }
                     SIGTERM | SIGINT => {
-                        info!("Received {} - initiating graceful shutdown",
-                              if sig == SIGTERM { "SIGTERM" } else { "SIGINT" });
+                        info!(
+                            "Received {} - initiating graceful shutdown",
+                            if sig == SIGTERM { "SIGTERM" } else { "SIGINT" }
+                        );
                         // Use Release ordering to ensure all prior memory operations
                         // are visible to the thread that reads this flag
                         quit_flag.store(true, Ordering::Release);

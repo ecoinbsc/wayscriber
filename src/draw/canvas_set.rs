@@ -114,7 +114,7 @@ impl Default for CanvasSet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::draw::{Color, Shape, RED, BLACK};
+    use crate::draw::{BLACK, Color, RED, Shape};
 
     #[test]
     fn test_initial_mode_is_transparent() {

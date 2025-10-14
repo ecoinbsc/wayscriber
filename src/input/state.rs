@@ -200,11 +200,7 @@ impl InputState {
         // Trigger redraw
         self.needs_redraw = true;
 
-        log::info!(
-            "Switched from {:?} to {:?} mode",
-            current_mode,
-            target_mode
-        );
+        log::info!("Switched from {:?} to {:?} mode", current_mode, target_mode);
     }
 
     /// Processes a key press event.
