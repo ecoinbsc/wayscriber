@@ -1,6 +1,6 @@
 /// UI rendering: status bar, help overlay, visual indicators
 use crate::config::StatusPosition;
-use crate::input::{DrawingState, InputState, Tool};
+use crate::input::{BoardMode, DrawingState, InputState, Tool};
 
 // ============================================================================
 // UI Layout Constants (not configurable)
@@ -55,10 +55,17 @@ pub fn render_status_bar(
     // Determine color name
     let color_name = crate::util::color_to_name(color);
 
-    // Build status text
+    // Get board mode indicator
+    let mode_badge = match input_state.board_mode() {
+        BoardMode::Transparent => "",
+        BoardMode::Whiteboard => "[WHITEBOARD] ",
+        BoardMode::Blackboard => "[BLACKBOARD] ",
+    };
+
+    // Build status text with mode badge
     let status_text = format!(
-        "[{}] [{}px] [{}]  F10=Help",
-        color_name, thickness as i32, tool_name
+        "{}[{}] [{}px] [{}]  F10=Help",
+        mode_badge, color_name, thickness as i32, tool_name
     );
 
     // Set font
@@ -95,8 +102,24 @@ pub fn render_status_bar(
         ),
     };
 
-    // Draw semi-transparent background
-    let [r, g, b, a] = style.bg_color;
+    // Adjust colors based on board mode for better contrast
+    let (bg_color, text_color) = match input_state.board_mode() {
+        BoardMode::Transparent => {
+            // Use config colors for transparent mode
+            (style.bg_color, style.text_color)
+        }
+        BoardMode::Whiteboard => {
+            // Dark text and background on white board
+            ([0.2, 0.2, 0.2, 0.85], [0.0, 0.0, 0.0, 1.0])
+        }
+        BoardMode::Blackboard => {
+            // Light text and background on dark board
+            ([0.8, 0.8, 0.8, 0.85], [1.0, 1.0, 1.0, 1.0])
+        }
+    };
+
+    // Draw semi-transparent background with adaptive color
+    let [r, g, b, a] = bg_color;
     ctx.set_source_rgba(r, g, b, a);
     ctx.rectangle(
         x - STATUS_BG_OFFSET_X,
@@ -119,8 +142,8 @@ pub fn render_status_bar(
     );
     let _ = ctx.fill();
 
-    // Draw text
-    let [r, g, b, a] = style.text_color;
+    // Draw text with adaptive color
+    let [r, g, b, a] = text_color;
     ctx.set_source_rgba(r, g, b, a);
     ctx.move_to(x, y);
     let _ = ctx.show_text(&status_text);
@@ -135,6 +158,11 @@ pub fn render_help_overlay(
 ) {
     let help_text = vec![
         "━━━━━━━━━━━ CONTROLS ━━━━━━━━━━━",
+        "",
+        "Board Modes:",
+        "  Ctrl+W              = Toggle Whiteboard",
+        "  Ctrl+B              = Toggle Blackboard",
+        "  Ctrl+Shift+T        = Return to Transparent",
         "",
         "Drawing Tools:",
         "  Drag                = Freehand pen",
@@ -162,12 +190,12 @@ pub fn render_help_overlay(
         "  Scroll Down         = Decrease",
         "",
         "Actions:",
-        "  E                   = Clear all",
-        "  Ctrl+Z              = Undo last",
+        "  E                   = Clear current frame",
+        "  Ctrl+Z              = Undo in current frame",
         "  Escape or Ctrl+Q    = Exit",
         "",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        "",
+        "Note: Each mode has independent drawings",
         "Press F10 to hide help",
     ];
 
