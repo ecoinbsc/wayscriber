@@ -185,6 +185,9 @@ bind = $mainMod SHIFT, D, exec, hyprmarker --active --mode whiteboard
 | **Line Thickness** |
 | Increase | `+` or `=` or scroll down |
 | Decrease | `-` or `_` or scroll up |
+| **Font Size** |
+| Increase | `Ctrl+Shift++` or `Shift+Scroll Down` |
+| Decrease | `Ctrl+Shift+-` or `Shift+Scroll Up` |
 | **Editing** |
 | Undo last shape | `Ctrl+Z` |
 | Clear all | `E` |

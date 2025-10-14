@@ -144,6 +144,19 @@ impl InputState {
         self.canvas_set.active_mode()
     }
 
+    /// Adjusts the current font size by a delta, clamping to valid range.
+    ///
+    /// Font size is clamped to 8.0-72.0px range (same as config validation).
+    /// Triggers a redraw to update the status bar display.
+    ///
+    /// # Arguments
+    /// * `delta` - Amount to adjust font size (positive to increase, negative to decrease)
+    pub fn adjust_font_size(&mut self, delta: f64) {
+        self.current_font_size = (self.current_font_size + delta).clamp(8.0, 72.0);
+        self.needs_redraw = true;
+        log::debug!("Font size adjusted to {:.1}px", self.current_font_size);
+    }
+
     /// Switches to a different board mode with color auto-adjustment.
     ///
     /// Handles mode transitions with automatic color adjustment for contrast:
@@ -352,14 +365,24 @@ impl InputState {
             Key::Alt => self.modifiers.alt = true,
             Key::Tab => self.modifiers.tab = true,
             Key::Plus | Key::Equals => {
-                // Increase thickness
-                self.current_thickness = (self.current_thickness + 1.0).min(20.0);
-                self.needs_redraw = true;
+                if self.modifiers.ctrl && self.modifiers.shift {
+                    // Ctrl+Shift+Plus: Increase font size
+                    self.adjust_font_size(2.0);
+                } else {
+                    // Plain Plus: Increase thickness
+                    self.current_thickness = (self.current_thickness + 1.0).min(20.0);
+                    self.needs_redraw = true;
+                }
             }
             Key::Minus | Key::Underscore => {
-                // Decrease thickness
-                self.current_thickness = (self.current_thickness - 1.0).max(1.0);
-                self.needs_redraw = true;
+                if self.modifiers.ctrl && self.modifiers.shift {
+                    // Ctrl+Shift+Minus: Decrease font size
+                    self.adjust_font_size(-2.0);
+                } else {
+                    // Plain Minus: Decrease thickness
+                    self.current_thickness = (self.current_thickness - 1.0).max(1.0);
+                    self.needs_redraw = true;
+                }
             }
             Key::F10 => {
                 // Toggle help overlay
@@ -671,5 +694,106 @@ impl InputState {
         } else {
             false
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::BoardConfig;
+    use crate::draw::{Color, FontDescriptor};
+
+    fn create_test_input_state() -> InputState {
+        InputState::with_defaults(
+            Color {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            }, // Red
+            3.0,     // thickness
+            32.0,    // font_size
+            FontDescriptor {
+                family: "Sans".to_string(),
+                weight: "bold".to_string(),
+                style: "normal".to_string(),
+            },
+            false,          // text_background_enabled
+            20.0,           // arrow_length
+            30.0,           // arrow_angle
+            BoardConfig::default(),
+        )
+    }
+
+    #[test]
+    fn test_adjust_font_size_increase() {
+        let mut state = create_test_input_state();
+        assert_eq!(state.current_font_size, 32.0);
+
+        state.adjust_font_size(2.0);
+        assert_eq!(state.current_font_size, 34.0);
+        assert!(state.needs_redraw);
+    }
+
+    #[test]
+    fn test_adjust_font_size_decrease() {
+        let mut state = create_test_input_state();
+        assert_eq!(state.current_font_size, 32.0);
+
+        state.adjust_font_size(-2.0);
+        assert_eq!(state.current_font_size, 30.0);
+        assert!(state.needs_redraw);
+    }
+
+    #[test]
+    fn test_adjust_font_size_clamp_min() {
+        let mut state = create_test_input_state();
+        state.current_font_size = 10.0;
+
+        // Try to go below minimum (8.0)
+        state.adjust_font_size(-5.0);
+        assert_eq!(state.current_font_size, 8.0);
+    }
+
+    #[test]
+    fn test_adjust_font_size_clamp_max() {
+        let mut state = create_test_input_state();
+        state.current_font_size = 70.0;
+
+        // Try to go above maximum (72.0)
+        state.adjust_font_size(5.0);
+        assert_eq!(state.current_font_size, 72.0);
+    }
+
+    #[test]
+    fn test_adjust_font_size_at_boundaries() {
+        let mut state = create_test_input_state();
+
+        // Test at minimum boundary
+        state.current_font_size = 8.0;
+        state.adjust_font_size(0.0);
+        assert_eq!(state.current_font_size, 8.0);
+
+        // Test at maximum boundary
+        state.current_font_size = 72.0;
+        state.adjust_font_size(0.0);
+        assert_eq!(state.current_font_size, 72.0);
+    }
+
+    #[test]
+    fn test_adjust_font_size_multiple_adjustments() {
+        let mut state = create_test_input_state();
+        assert_eq!(state.current_font_size, 32.0);
+
+        // Simulate multiple Ctrl+Shift++ presses
+        state.adjust_font_size(2.0);
+        state.adjust_font_size(2.0);
+        state.adjust_font_size(2.0);
+        assert_eq!(state.current_font_size, 38.0);
+
+        // Then decrease
+        state.adjust_font_size(-2.0);
+        state.adjust_font_size(-2.0);
+        assert_eq!(state.current_font_size, 34.0);
     }
 }

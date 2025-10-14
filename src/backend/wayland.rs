@@ -864,7 +864,6 @@ impl PointerHandler for WaylandState {
                     self.input_state.needs_redraw = true;
                 }
                 PointerEventKind::Axis { vertical, .. } => {
-                    // Use scroll wheel for pen width adjustment
                     // Use discrete steps if available, otherwise fall back to absolute with threshold
                     let scroll_direction = if vertical.discrete != 0 {
                         vertical.discrete
@@ -875,24 +874,44 @@ impl PointerHandler for WaylandState {
                         0
                     };
 
-                    if scroll_direction > 0 {
-                        // Scroll up = decrease thickness
-                        self.input_state.current_thickness =
-                            (self.input_state.current_thickness - 1.0).max(1.0);
-                        debug!(
-                            "Thickness decreased: {:.0}px",
-                            self.input_state.current_thickness
-                        );
-                        self.input_state.needs_redraw = true;
-                    } else if scroll_direction < 0 {
-                        // Scroll down = increase thickness
-                        self.input_state.current_thickness =
-                            (self.input_state.current_thickness + 1.0).min(20.0);
-                        debug!(
-                            "Thickness increased: {:.0}px",
-                            self.input_state.current_thickness
-                        );
-                        self.input_state.needs_redraw = true;
+                    if self.input_state.modifiers.shift {
+                        // Shift+Scroll: adjust font size
+                        if scroll_direction > 0 {
+                            // Scroll up = decrease font size
+                            self.input_state.adjust_font_size(-2.0);
+                            debug!(
+                                "Font size decreased: {:.1}px",
+                                self.input_state.current_font_size
+                            );
+                        } else if scroll_direction < 0 {
+                            // Scroll down = increase font size
+                            self.input_state.adjust_font_size(2.0);
+                            debug!(
+                                "Font size increased: {:.1}px",
+                                self.input_state.current_font_size
+                            );
+                        }
+                    } else {
+                        // Normal scroll: adjust pen thickness
+                        if scroll_direction > 0 {
+                            // Scroll up = decrease thickness
+                            self.input_state.current_thickness =
+                                (self.input_state.current_thickness - 1.0).max(1.0);
+                            debug!(
+                                "Thickness decreased: {:.0}px",
+                                self.input_state.current_thickness
+                            );
+                            self.input_state.needs_redraw = true;
+                        } else if scroll_direction < 0 {
+                            // Scroll down = increase thickness
+                            self.input_state.current_thickness =
+                                (self.input_state.current_thickness + 1.0).min(20.0);
+                            debug!(
+                                "Thickness increased: {:.0}px",
+                                self.input_state.current_thickness
+                            );
+                            self.input_state.needs_redraw = true;
+                        }
                     }
                 }
             }

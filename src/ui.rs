@@ -62,10 +62,11 @@ pub fn render_status_bar(
         BoardMode::Blackboard => "[BLACKBOARD] ",
     };
 
-    // Build status text with mode badge
+    // Build status text with mode badge and font size
+    let font_size = input_state.current_font_size;
     let status_text = format!(
-        "{}[{}] [{}px] [{}]  F10=Help",
-        mode_badge, color_name, thickness as i32, tool_name
+        "{}[{}] [{}px] [{}] [Text {}px]  F10=Help",
+        mode_badge, color_name, thickness as i32, tool_name, font_size as i32
     );
 
     // Set font
@@ -186,8 +187,14 @@ pub fn render_help_overlay(
         "Pen Thickness:",
         "  + or =              = Increase",
         "  - or _              = Decrease",
-        "  Scroll Up           = Increase",
-        "  Scroll Down         = Decrease",
+        "  Scroll Up           = Decrease",
+        "  Scroll Down         = Increase",
+        "",
+        "Font Size:",
+        "  Ctrl+Shift++        = Increase",
+        "  Ctrl+Shift+-        = Decrease",
+        "  Shift+Scroll Up     = Decrease",
+        "  Shift+Scroll Down   = Increase",
         "",
         "Actions:",
         "  E                   = Clear current frame",

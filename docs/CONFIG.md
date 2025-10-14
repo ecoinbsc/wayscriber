@@ -36,12 +36,17 @@ default_color = "red"
 default_thickness = 3.0
 
 # Default font size for text mode (8.0 - 72.0)
+# Can be adjusted at runtime with Ctrl+Shift+/- or Shift+Scroll
 default_font_size = 32.0
 ```
 
 **Color Options:**
 - **Named colors**: `"red"`, `"green"`, `"blue"`, `"yellow"`, `"orange"`, `"pink"`, `"white"`, `"black"`
 - **RGB arrays**: `[255, 0, 0]` for red, `[0, 255, 0]` for green, etc.
+
+**Runtime Adjustments:**
+- **Pen thickness**: Use `+`/`-` keys or scroll wheel (range: 1-20px)
+- **Font size**: Use `Ctrl+Shift+`/`-` or `Shift+Scroll` (range: 8-72px)
 
 **Defaults:**
 - Color: Red
