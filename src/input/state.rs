@@ -251,17 +251,21 @@ impl InputState {
                 } else {
                     // Not in text mode, handle special keys
                     match c {
-                        // Board mode toggles (Ctrl+W, Ctrl+B)
-                        'w' | 'W' if self.modifiers.ctrl => {
+                        // Board mode toggles (Ctrl+W, Ctrl+B) - only if enabled
+                        'w' | 'W' if self.modifiers.ctrl && self.board_config.enabled => {
                             log::info!("Ctrl+W pressed - toggling whiteboard mode");
                             self.switch_board_mode(BoardMode::Whiteboard);
                         }
-                        'b' | 'B' if self.modifiers.ctrl => {
+                        'b' | 'B' if self.modifiers.ctrl && self.board_config.enabled => {
                             log::info!("Ctrl+B pressed - toggling blackboard mode");
                             self.switch_board_mode(BoardMode::Blackboard);
                         }
-                        't' | 'T' if self.modifiers.ctrl && self.modifiers.shift => {
-                            // Ctrl+Shift+T: explicit return to transparent
+                        't' | 'T'
+                            if self.modifiers.ctrl
+                                && self.modifiers.shift
+                                && self.board_config.enabled =>
+                        {
+                            // Ctrl+Shift+T: explicit return to transparent (only if board modes enabled)
                             log::info!("Ctrl+Shift+T pressed - returning to transparent mode");
                             self.switch_board_mode(BoardMode::Transparent);
                         }

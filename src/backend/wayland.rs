@@ -148,28 +148,32 @@ impl WaylandBackend {
             config.board.clone(),
         );
 
-        // Apply initial mode from CLI (if provided) or config default
-        let initial_mode_str = self
-            .initial_mode
-            .clone()
-            .unwrap_or_else(|| config.board.default_mode.clone());
+        // Apply initial mode from CLI (if provided) or config default (only if board modes enabled)
+        if config.board.enabled {
+            let initial_mode_str = self
+                .initial_mode
+                .clone()
+                .unwrap_or_else(|| config.board.default_mode.clone());
 
-        if let Some(mode) = crate::input::BoardMode::from_str(&initial_mode_str) {
-            if mode != crate::input::BoardMode::Transparent {
-                info!("Starting in {} mode", initial_mode_str);
-                input_state.canvas_set.switch_mode(mode);
-                // Apply auto-color adjustment if enabled
-                if config.board.auto_adjust_pen {
-                    if let Some(default_color) = mode.default_pen_color(&config.board) {
-                        input_state.current_color = default_color;
+            if let Some(mode) = crate::input::BoardMode::from_str(&initial_mode_str) {
+                if mode != crate::input::BoardMode::Transparent {
+                    info!("Starting in {} mode", initial_mode_str);
+                    input_state.canvas_set.switch_mode(mode);
+                    // Apply auto-color adjustment if enabled
+                    if config.board.auto_adjust_pen {
+                        if let Some(default_color) = mode.default_pen_color(&config.board) {
+                            input_state.current_color = default_color;
+                        }
                     }
                 }
+            } else if !initial_mode_str.is_empty() {
+                warn!(
+                    "Invalid board mode '{}', using transparent",
+                    initial_mode_str
+                );
             }
-        } else if !initial_mode_str.is_empty() {
-            warn!(
-                "Invalid board mode '{}', using transparent",
-                initial_mode_str
-            );
+        } else if self.initial_mode.is_some() {
+            warn!("Board modes disabled in config, ignoring --mode flag");
         }
 
         // Create application state
