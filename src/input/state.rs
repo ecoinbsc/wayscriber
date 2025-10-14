@@ -4,6 +4,7 @@ use super::board_mode::BoardMode;
 use super::events::{Key, MouseButton};
 use super::modifiers::Modifiers;
 use super::tool::Tool;
+use crate::config::BoardConfig;
 use crate::draw::{CanvasSet, Color, FontDescriptor, Shape};
 use crate::util;
 
@@ -75,6 +76,8 @@ pub struct InputState {
     pub screen_height: u32,
     /// Previous color before entering board mode (for restoration)
     pub board_previous_color: Option<Color>,
+    /// Board mode configuration
+    pub board_config: BoardConfig,
 }
 
 impl InputState {
@@ -91,6 +94,7 @@ impl InputState {
     /// * `text_background_enabled` - Whether to draw background behind text
     /// * `arrow_length` - Arrowhead length in pixels
     /// * `arrow_angle` - Arrowhead angle in degrees
+    /// * `board_config` - Board mode configuration
     pub fn with_defaults(
         color: Color,
         thickness: f64,
@@ -99,6 +103,7 @@ impl InputState {
         text_background_enabled: bool,
         arrow_length: f64,
         arrow_angle: f64,
+        board_config: BoardConfig,
     ) -> Self {
         Self {
             canvas_set: CanvasSet::new(),
@@ -117,6 +122,7 @@ impl InputState {
             screen_width: 0,
             screen_height: 0,
             board_previous_color: None,
+            board_config,
         }
     }
 
@@ -161,34 +167,36 @@ impl InputState {
             return;
         }
 
-        // Handle color auto-adjustment based on transition type
-        match (current_mode, target_mode) {
-            // Entering board mode from transparent
-            (BoardMode::Transparent, BoardMode::Whiteboard | BoardMode::Blackboard) => {
-                // Save current color and apply board default
-                self.board_previous_color = Some(self.current_color);
-                if let Some(default_color) = target_mode.default_pen_color() {
-                    self.current_color = default_color;
+        // Handle color auto-adjustment based on transition type (if enabled)
+        if self.board_config.auto_adjust_pen {
+            match (current_mode, target_mode) {
+                // Entering board mode from transparent
+                (BoardMode::Transparent, BoardMode::Whiteboard | BoardMode::Blackboard) => {
+                    // Save current color and apply board default
+                    self.board_previous_color = Some(self.current_color);
+                    if let Some(default_color) = target_mode.default_pen_color(&self.board_config) {
+                        self.current_color = default_color;
+                    }
                 }
-            }
-            // Exiting board mode to transparent
-            (BoardMode::Whiteboard | BoardMode::Blackboard, BoardMode::Transparent) => {
-                // Restore previous color if we saved one
-                if let Some(prev_color) = self.board_previous_color {
-                    self.current_color = prev_color;
-                    self.board_previous_color = None;
+                // Exiting board mode to transparent
+                (BoardMode::Whiteboard | BoardMode::Blackboard, BoardMode::Transparent) => {
+                    // Restore previous color if we saved one
+                    if let Some(prev_color) = self.board_previous_color {
+                        self.current_color = prev_color;
+                        self.board_previous_color = None;
+                    }
                 }
-            }
-            // Switching between board modes
-            (BoardMode::Whiteboard, BoardMode::Blackboard)
-            | (BoardMode::Blackboard, BoardMode::Whiteboard) => {
-                // Apply new board's default color
-                if let Some(default_color) = target_mode.default_pen_color() {
-                    self.current_color = default_color;
+                // Switching between board modes
+                (BoardMode::Whiteboard, BoardMode::Blackboard)
+                | (BoardMode::Blackboard, BoardMode::Whiteboard) => {
+                    // Apply new board's default color
+                    if let Some(default_color) = target_mode.default_pen_color(&self.board_config) {
+                        self.current_color = default_color;
+                    }
                 }
+                // All other transitions (shouldn't happen, but handle gracefully)
+                _ => {}
             }
-            // All other transitions (shouldn't happen, but handle gracefully)
-            _ => {}
         }
 
         // Switch the active frame

@@ -35,6 +35,7 @@ use crate::input::{InputState, Key, MouseButton};
 /// Wayland backend state
 pub struct WaylandBackend {
     // Removed: inner Arc<Mutex> was unused - WaylandState is created and used directly in run()
+    initial_mode: Option<String>,
 }
 
 /// Internal Wayland state
@@ -67,8 +68,8 @@ struct WaylandState {
 }
 
 impl WaylandBackend {
-    pub fn new() -> Result<Self> {
-        Ok(Self {})
+    pub fn new(initial_mode: Option<String>) -> Result<Self> {
+        Ok(Self { initial_mode })
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -136,7 +137,7 @@ impl WaylandBackend {
         );
 
         // Initialize input state with config defaults
-        let input_state = InputState::with_defaults(
+        let mut input_state = InputState::with_defaults(
             config.drawing.default_color.to_color(),
             config.drawing.default_thickness,
             config.drawing.default_font_size,
@@ -144,7 +145,32 @@ impl WaylandBackend {
             config.drawing.text_background_enabled,
             config.arrow.length,
             config.arrow.angle_degrees,
+            config.board.clone(),
         );
+
+        // Apply initial mode from CLI (if provided) or config default
+        let initial_mode_str = self
+            .initial_mode
+            .clone()
+            .unwrap_or_else(|| config.board.default_mode.clone());
+
+        if let Some(mode) = crate::input::BoardMode::from_str(&initial_mode_str) {
+            if mode != crate::input::BoardMode::Transparent {
+                info!("Starting in {} mode", initial_mode_str);
+                input_state.canvas_set.switch_mode(mode);
+                // Apply auto-color adjustment if enabled
+                if config.board.auto_adjust_pen {
+                    if let Some(default_color) = mode.default_pen_color(&config.board) {
+                        input_state.current_color = default_color;
+                    }
+                }
+            }
+        } else if !initial_mode_str.is_empty() {
+            warn!(
+                "Invalid board mode '{}', using transparent",
+                initial_mode_str
+            );
+        }
 
         // Create application state
         let mut state = WaylandState {
@@ -356,7 +382,11 @@ impl WaylandState {
         ctx.set_operator(cairo::Operator::Over);
 
         // Render board background if in board mode (whiteboard/blackboard)
-        crate::draw::render_board_background(&ctx, self.input_state.board_mode());
+        crate::draw::render_board_background(
+            &ctx,
+            self.input_state.board_mode(),
+            &self.input_state.board_config,
+        );
 
         // Render all completed shapes from active frame
         debug!(

@@ -1,5 +1,6 @@
 //! Board/canvas mode selection.
 
+use crate::config::BoardConfig;
 use crate::draw::Color;
 
 /// Board rendering mode
@@ -26,22 +27,28 @@ impl BoardMode {
     /// Returns the background color for this mode, if any.
     ///
     /// Transparent mode returns None (no background fill).
-    /// Whiteboard and Blackboard return their respective colors.
-    pub fn background_color(&self) -> Option<Color> {
+    /// Whiteboard and Blackboard return their respective colors from config.
+    pub fn background_color(&self, config: &BoardConfig) -> Option<Color> {
         match self {
             Self::Transparent => None,
-            Self::Whiteboard => Some(Color {
-                r: 0.992,
-                g: 0.992,
-                b: 0.992,
-                a: 1.0,
-            }), // Off-white #FDFDFD
-            Self::Blackboard => Some(Color {
-                r: 0.067,
-                g: 0.067,
-                b: 0.067,
-                a: 1.0,
-            }), // Near-black #111111
+            Self::Whiteboard => {
+                let rgb = config.whiteboard_color;
+                Some(Color {
+                    r: rgb[0],
+                    g: rgb[1],
+                    b: rgb[2],
+                    a: 1.0,
+                })
+            }
+            Self::Blackboard => {
+                let rgb = config.blackboard_color;
+                Some(Color {
+                    r: rgb[0],
+                    g: rgb[1],
+                    b: rgb[2],
+                    a: 1.0,
+                })
+            }
         }
     }
 
@@ -49,21 +56,37 @@ impl BoardMode {
     ///
     /// Used for auto-adjusting pen color when entering board modes
     /// to ensure good contrast.
-    pub fn default_pen_color(&self) -> Option<Color> {
+    pub fn default_pen_color(&self, config: &BoardConfig) -> Option<Color> {
         match self {
             Self::Transparent => None, // No default change for transparent
-            Self::Whiteboard => Some(Color {
-                r: 0.0,
-                g: 0.0,
-                b: 0.0,
-                a: 1.0,
-            }), // Black
-            Self::Blackboard => Some(Color {
-                r: 1.0,
-                g: 1.0,
-                b: 1.0,
-                a: 1.0,
-            }), // White
+            Self::Whiteboard => {
+                let rgb = config.whiteboard_pen_color;
+                Some(Color {
+                    r: rgb[0],
+                    g: rgb[1],
+                    b: rgb[2],
+                    a: 1.0,
+                })
+            }
+            Self::Blackboard => {
+                let rgb = config.blackboard_pen_color;
+                Some(Color {
+                    r: rgb[0],
+                    g: rgb[1],
+                    b: rgb[2],
+                    a: 1.0,
+                })
+            }
+        }
+    }
+
+    /// Parse mode from string (for CLI and config).
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "transparent" => Some(Self::Transparent),
+            "whiteboard" => Some(Self::Whiteboard),
+            "blackboard" => Some(Self::Blackboard),
+            _ => None,
         }
     }
 
@@ -95,34 +118,38 @@ mod tests {
 
     #[test]
     fn test_background_color() {
-        assert_eq!(BoardMode::Transparent.background_color(), None);
-        assert!(BoardMode::Whiteboard.background_color().is_some());
-        assert!(BoardMode::Blackboard.background_color().is_some());
+        let config = BoardConfig::default();
 
-        // Verify specific colors
-        let white_bg = BoardMode::Whiteboard.background_color().unwrap();
+        assert_eq!(BoardMode::Transparent.background_color(&config), None);
+        assert!(BoardMode::Whiteboard.background_color(&config).is_some());
+        assert!(BoardMode::Blackboard.background_color(&config).is_some());
+
+        // Verify specific colors from default config
+        let white_bg = BoardMode::Whiteboard.background_color(&config).unwrap();
         assert!((white_bg.r - 0.992).abs() < 0.001);
         assert_eq!(white_bg.a, 1.0);
 
-        let black_bg = BoardMode::Blackboard.background_color().unwrap();
+        let black_bg = BoardMode::Blackboard.background_color(&config).unwrap();
         assert!((black_bg.r - 0.067).abs() < 0.001);
         assert_eq!(black_bg.a, 1.0);
     }
 
     #[test]
     fn test_default_pen_color() {
-        assert_eq!(BoardMode::Transparent.default_pen_color(), None);
-        assert!(BoardMode::Whiteboard.default_pen_color().is_some());
-        assert!(BoardMode::Blackboard.default_pen_color().is_some());
+        let config = BoardConfig::default();
+
+        assert_eq!(BoardMode::Transparent.default_pen_color(&config), None);
+        assert!(BoardMode::Whiteboard.default_pen_color(&config).is_some());
+        assert!(BoardMode::Blackboard.default_pen_color(&config).is_some());
 
         // Whiteboard should default to black pen
-        let white_pen = BoardMode::Whiteboard.default_pen_color().unwrap();
+        let white_pen = BoardMode::Whiteboard.default_pen_color(&config).unwrap();
         assert_eq!(white_pen.r, 0.0);
         assert_eq!(white_pen.g, 0.0);
         assert_eq!(white_pen.b, 0.0);
 
         // Blackboard should default to white pen
-        let black_pen = BoardMode::Blackboard.default_pen_color().unwrap();
+        let black_pen = BoardMode::Blackboard.default_pen_color(&config).unwrap();
         assert_eq!(black_pen.r, 1.0);
         assert_eq!(black_pen.g, 1.0);
         assert_eq!(black_pen.b, 1.0);
@@ -140,5 +167,22 @@ mod tests {
         assert!(!BoardMode::Transparent.is_board_mode());
         assert!(BoardMode::Whiteboard.is_board_mode());
         assert!(BoardMode::Blackboard.is_board_mode());
+    }
+
+    #[test]
+    fn test_from_str() {
+        assert_eq!(
+            BoardMode::from_str("transparent"),
+            Some(BoardMode::Transparent)
+        );
+        assert_eq!(
+            BoardMode::from_str("Whiteboard"),
+            Some(BoardMode::Whiteboard)
+        );
+        assert_eq!(
+            BoardMode::from_str("BLACKBOARD"),
+            Some(BoardMode::Blackboard)
+        );
+        assert_eq!(BoardMode::from_str("invalid"), None);
     }
 }
