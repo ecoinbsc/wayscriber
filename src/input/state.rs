@@ -1,9 +1,10 @@
 //! Drawing state machine and input state management.
 
+use super::board_mode::BoardMode;
 use super::events::{Key, MouseButton};
 use super::modifiers::Modifiers;
 use super::tool::Tool;
-use crate::draw::{Color, FontDescriptor, Frame, Shape};
+use crate::draw::{CanvasSet, Color, FontDescriptor, Shape};
 use crate::util;
 
 /// Current drawing mode state machine.
@@ -42,8 +43,8 @@ pub enum DrawingState {
 /// modifier keys, drawing mode, and UI flags. It processes all keyboard and
 /// mouse events to update the drawing state and determine when redraws are needed.
 pub struct InputState {
-    /// Container for all shapes drawn in this session
-    pub frame: Frame,
+    /// Multi-frame canvas management (transparent, whiteboard, blackboard)
+    pub canvas_set: CanvasSet,
     /// Current drawing color (changed with color keys: R, G, B, etc.)
     pub current_color: Color,
     /// Current pen/line thickness in pixels (changed with +/- keys)
@@ -72,6 +73,8 @@ pub struct InputState {
     pub screen_width: u32,
     /// Screen height in pixels (set by backend after configuration)
     pub screen_height: u32,
+    /// Previous color before entering board mode (for restoration)
+    pub board_previous_color: Option<Color>,
 }
 
 impl InputState {
@@ -98,7 +101,7 @@ impl InputState {
         arrow_angle: f64,
     ) -> Self {
         Self {
-            frame: Frame::new(),
+            canvas_set: CanvasSet::new(),
             current_color: color,
             current_thickness: thickness,
             current_font_size: font_size,
@@ -113,6 +116,7 @@ impl InputState {
             show_help: false,
             screen_width: 0,
             screen_height: 0,
+            board_previous_color: None,
         }
     }
 
@@ -127,6 +131,24 @@ impl InputState {
     pub fn update_screen_dimensions(&mut self, width: u32, height: u32) {
         self.screen_width = width;
         self.screen_height = height;
+    }
+
+    /// Returns the current board mode.
+    pub fn board_mode(&self) -> BoardMode {
+        self.canvas_set.active_mode()
+    }
+
+    /// Switches to a different board mode (implementation in Phase 2).
+    ///
+    /// This is a placeholder that will be fully implemented in Phase 2
+    /// with color auto-adjustment and state reset logic.
+    pub fn switch_board_mode(&mut self, _new_mode: BoardMode) {
+        // TODO: Implement in Phase 2
+        // This will include:
+        // - Color save/restore logic
+        // - DrawingState reset to Idle
+        // - canvas_set.switch_mode()
+        // - needs_redraw = true
     }
 
     /// Processes a key press event.
@@ -181,13 +203,13 @@ impl InputState {
                             }
                         }
                         'e' | 'E' => {
-                            // Clear all annotations
-                            self.frame.clear();
+                            // Clear all annotations in active frame
+                            self.canvas_set.clear_active();
                             self.needs_redraw = true;
                         }
                         'z' | 'Z' if self.modifiers.ctrl => {
-                            // Undo last shape
-                            if self.frame.undo() {
+                            // Undo last shape in active frame
+                            if self.canvas_set.active_frame_mut().undo() {
                                 self.needs_redraw = true;
                             }
                         }
@@ -224,7 +246,7 @@ impl InputState {
                     } else {
                         // Plain Enter: finalize text input
                         if !buffer.is_empty() {
-                            self.frame.add_shape(Shape::Text {
+                            self.canvas_set.active_frame_mut().add_shape(Shape::Text {
                                 x: *x,
                                 y: *y,
                                 text: buffer.clone(),
@@ -425,7 +447,7 @@ impl InputState {
                 },
             };
 
-            self.frame.add_shape(shape);
+            self.canvas_set.active_frame_mut().add_shape(shape);
             self.state = DrawingState::Idle;
             self.needs_redraw = true;
         }

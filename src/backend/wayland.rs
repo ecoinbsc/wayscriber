@@ -355,12 +355,15 @@ impl WaylandState {
         ctx.paint().context("Failed to clear background")?;
         ctx.set_operator(cairo::Operator::Over);
 
-        // Render all completed shapes
+        // Render board background if in board mode (whiteboard/blackboard)
+        crate::draw::render_board_background(&ctx, self.input_state.board_mode());
+
+        // Render all completed shapes from active frame
         debug!(
             "Rendering {} completed shapes",
-            self.input_state.frame.shapes.len()
+            self.input_state.canvas_set.active_frame().shapes.len()
         );
-        crate::draw::render_shapes(&ctx, &self.input_state.frame.shapes);
+        crate::draw::render_shapes(&ctx, &self.input_state.canvas_set.active_frame().shapes);
 
         // Render provisional shape if actively drawing
         // Use optimized method that avoids cloning for freehand
